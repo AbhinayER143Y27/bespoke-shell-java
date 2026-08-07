@@ -1,39 +1,62 @@
+import java.io.File;
 import java.util.Scanner;
-
-public class Main
-{
-    public static void main(String args[]) throws Exception
-    {
+public class Main {
+    public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
-        while(true)
-        {
+
+        while(true) {
             System.out.print("$ ");
             String input = scanner.nextLine();
-            if(input.startsWith("type ")) {
-                String target = input.substring(5).trim();
-                if (isBuiltIn(target)) {
-                    System.out.println(input + " is a shell builtin");
-                }
-                else
-                {
-                    System.out.println(input + ": not found");
-                }
-            }
-            else if(input.equals("exit"))
+            if(input.equals("exit") || input.equals("exit "))
             {
                 break;
             }
+
+            else if(input.startsWith("type "))
+            {
+                String target = input.substring(5).trim();
+                if(isBuiltIn(target)) System.out.println(target + " is a shell builtin");
+                else {
+                    String execPath = getExecutablePath(target);
+                    if(execPath != null)
+                    {
+                        System.out.println(target + " is " + execPath);
+                    }
+                    else {System.out.println(target + ": not found");}
+                }
+            }
+
             else if(input.startsWith("echo "))
             {
-                System.out.println(input.substring(5).trim());
+                System.out.println(input.substring(5));
             }
             else
-            System.out.println(input + ": command not found");
+                System.out.println(input + ": command not found");
         }
     }
-
     private static boolean isBuiltIn(String target)
     {
         return target.equals("echo") || target.equals("exit") || target.equals("type");
+    }
+
+    private static String getExecutablePath(String command)
+    {
+        String pathEnv = System.getenv("PATH"); //Specifying a lookup key in the operating system dictionary
+        if(pathEnv == null || pathEnv.isEmpty())
+        {
+            return null;
+        }
+        String[] directories = pathEnv.split(File.pathSeparator);
+
+        for(String dir : directories)
+        {
+            File file = new File(dir, command);
+
+            if(file.exists() && file.isFile() && file.canExecute())
+            {
+                return file.getAbsolutePath();
+            }
+        }
+        return null;
     }
 }
