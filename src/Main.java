@@ -7,6 +7,8 @@ public class Main {
         while(true) {
             System.out.print("$ ");
             String input = scanner.nextLine();
+            String parts[] = input.split("\\s+");
+            String command = parts[0];
             if(input.equals("exit") || input.equals("exit "))
             {
                 break;
@@ -30,8 +32,25 @@ public class Main {
             {
                 System.out.println(input.substring(5));
             }
-            else
-                System.out.println(input + ": command not found");
+            else {
+                String execPath = getExecutablePath(command);
+                if(execPath != null) {
+                    try {
+                        ProcessBuilder pb = new ProcessBuilder(parts);
+                        pb.directory(new File(System.getProperty("user.dir")));
+                        pb.inheritIO(); // connect the child process with your shells in and op.
+                        //Java shell -> stdin -> Process -> stdout -> terminal without this the output on the terminal might not exists.
+                        Process process = pb.start();
+
+                        process.waitFor();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                else {
+                    System.out.println(input + " : not found");
+                }
+            }
         }
     }
     private static boolean isBuiltIn(String target)
