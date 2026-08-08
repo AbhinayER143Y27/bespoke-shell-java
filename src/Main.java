@@ -9,7 +9,7 @@ public class Main {
             String input = scanner.nextLine();
             String parts[] = input.split("\\s+");
             String command = parts[0];
-            if(input.equals("exit") || input.equals("exit "))
+            if(command.equals("exit"))
             {
                 break;
             }
@@ -32,30 +32,72 @@ public class Main {
             {
                 System.out.println(input.substring(5));
             }
-            else {
+            // cd is updating a variable
+            // we cannot change the physical working directory of a running java using standard codes so we have to fake it by maintaining an internal variable
+            //telling rest of them where the user thinks they are.
+            else if(command.equals("cd"))
+            {
+                String targetPath = parts[1];
+                if(parts.length == 1)
+                {
+                    targetPath = System.getenv("HOME");
+                }
+                else if(parts.length == 2){targetPath = parts[1];}
+                else {
+                    System.out.println("cd: too many arguments");
+                    return;
+                }
+
+                if(targetPath.equals("~"))
+                {
+                    targetPath = System.getenv("HOME"); //OS's environment dictionary
+                }
+
+                File newDir = new File(targetPath);
+
+                if(!newDir.isAbsolute())
+                {
+                    newDir = new File(System.getProperty("user.dir"),targetPath);
+                }
+
+                if(newDir.exists() && newDir.isDirectory())
+                {
+                    System.setProperty("user.dir",newDir.getCanonicalPath()); //Magical Event
+                }
+                else {
+                    System.out.println("cd: "+ targetPath +": No such file or directory");
+                }
+            }
+
+            else if(command.equals("pwd"))
+            {
+                System.out.println(System.getProperty("user.dir")); //The shell doesn't look for the external programs to tell where it is and the user.dir in java property
+            }// that always tell where the JVM was started.
+            else{
                 String execPath = getExecutablePath(command);
-                if(execPath != null) {
-                    try {
+                if(execPath != null)
+                {
+                    try
+                    {
                         ProcessBuilder pb = new ProcessBuilder(parts);
                         pb.directory(new File(System.getProperty("user.dir")));
-                        pb.inheritIO(); // connect the child process with your shells in and op.
-                        //Java shell -> stdin -> Process -> stdout -> terminal without this the output on the terminal might not exists.
+                        pb.inheritIO(); //send its output to the terminal.
+
                         Process process = pb.start();
 
                         process.waitFor();
-                    } catch (Exception e) {
+                    }catch(Exception e)
+                    {
                         e.printStackTrace();
                     }
                 }
-                else {
-                    System.out.println(input + " : not found");
-                }
+                else System.out.println(input + ": not found");
             }
         }
     }
     private static boolean isBuiltIn(String target)
     {
-        return target.equals("echo") || target.equals("exit") || target.equals("type");
+        return target.equals("echo") || target.equals("exit") || target.equals("type") || target.equals("pwd");
     }
 
     private static String getExecutablePath(String command)
