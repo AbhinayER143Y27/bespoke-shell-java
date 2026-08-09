@@ -148,16 +148,20 @@ public class Main {
         List<String> result = new ArrayList<>();
         StringBuilder currentArg = new StringBuilder();
         boolean inSingleQuotes = false;
+        boolean inDoubleQuotes = false;
 
         for(int i = 0; i < input.length(); i++)
         {
             char c = input.charAt(i);
 
-            if(c == '\'')
-            {
+            if(c == '\'' && !inDoubleQuotes){
                 inSingleQuotes = !inSingleQuotes;
             }
-            else if(c == ' ' && !inSingleQuotes)
+            else if(c == '\"' && !inSingleQuotes)
+            {
+                inDoubleQuotes = !inDoubleQuotes;
+            }
+            else if(c == ' ' && !inSingleQuotes && !inDoubleQuotes) //treat a space as an argument separator if i'm not inside quotes.
             {
                 if(currentArg.length() > 0)
                 {
@@ -165,12 +169,12 @@ public class Main {
                     currentArg.setLength(0);
                 }
             }
-            else
-            {
+            else {
                 currentArg.append(c);
             }
         }
-        if(!currentArg.isEmpty())
+
+        if(currentArg.length() > 0)
         {
             result.add(currentArg.toString());
         }
