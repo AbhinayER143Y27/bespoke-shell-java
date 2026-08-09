@@ -149,12 +149,25 @@ public class Main {
         StringBuilder currentArg = new StringBuilder();
         boolean inSingleQuotes = false;
         boolean inDoubleQuotes = false;
+        boolean inEscaped = false;
 
         for(int i = 0; i < input.length(); i++)
         {
             char c = input.charAt(i);
 
-            if(c == '\'' && !inDoubleQuotes){
+            if(inEscaped)
+            {
+                currentArg.append(c);
+                inEscaped = false;
+                continue;
+            }
+
+            else if(c == '\\' && !inSingleQuotes && !inDoubleQuotes)
+            {
+                inEscaped = true;
+            }
+
+            else if(c == '\'' && !inDoubleQuotes){
                 inSingleQuotes = !inSingleQuotes;
             }
             else if(c == '\"' && !inSingleQuotes)
