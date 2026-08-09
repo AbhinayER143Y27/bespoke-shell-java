@@ -162,6 +162,24 @@ public class Main {
                 continue;
             }
 
+            //Look ahead buffering
+            else if(c == '\\' && inDoubleQuotes)
+            {
+                if(i+1 < input.length())
+                {
+                    char next = input.charAt(i+1);
+                    if(next == '\"' || next == '\\' || next == '$')
+                    {
+                        currentArg.append(next);
+                        i++;
+                    }
+                    else
+                    {
+                        currentArg.append(c);
+                    }
+                }
+            }
+
             else if(c == '\\' && !inSingleQuotes && !inDoubleQuotes)
             {
                 inEscaped = true;
