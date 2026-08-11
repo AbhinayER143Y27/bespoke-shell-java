@@ -1,5 +1,7 @@
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -16,6 +18,17 @@ public class Main {
             {
                 continue;
             }
+            String outputFile = null;
+            for(int i = 0; i < parts.size(); i++)
+            {
+                if(parts.get(i).equals(">") || parts.get(i).equals("1>"))
+                {
+                    outputFile = parts.get(i + 1);
+                    parts.remove(i + 1);
+                    parts.remove(i);
+                    break;
+                }
+            }
 
             String command = parts.get(0);
             if(command.equals("exit"))
@@ -23,33 +36,33 @@ public class Main {
                 break;
             }
 
-            else if(input.startsWith("type "))
+            else if(input.startsWith("type"))
             {
                 if(parts.size() > 1){
                     String target = parts.get(1);
+                    String result;
                     if(isBuiltIn(target)) System.out.println(target + " is a shell builtin");
                     else {
                         String execPath = getExecutablePath(target);
                         if (execPath != null) {
-                            System.out.println(target + " is " + execPath);
+                            result = target + " is " + execPath;
                         } else {
-                            System.out.println(target + ": not found");
+                            result = target + ": not found";
                         }
+                        printResult(result, outputFile);
                     }
                 }
             }
 
-            else if(command.equals("echo "))
+            else if(command.equals("echo"))
             {
+                StringBuilder sb = new StringBuilder();
                 for(int i = 1; i < parts.size(); i++)
                 {
-                    System.out.println(parts.get(i));
-                    if(i < parts.size() - 1)
-                    {
-                        System.out.print(" ");
-                    }
+                    sb.append(parts.get(i));
+                    if(i < parts.size() - 1) sb.append(" ");
                 }
-                System.out.println();
+                printResult(sb.toString(), outputFile);
             }
             // cd is updating a variable
             // we cannot change the physical working directory of a running java using standard codes so we have to fake it by maintaining an internal variable
@@ -93,7 +106,7 @@ public class Main {
 
             else if(command.equals("pwd"))
             {
-                System.out.println(System.getProperty("user.dir")); //The shell doesn't look for the external programs to tell where it is and the user.dir in java property
+                printResult(System.getProperty("user.dir"), outputFile); //The shell doesn't look for the external programs to tell where it is and the user.dir in java property
             }// that always tell where the JVM was started.
             else{
                 String execPath = getExecutablePath(command);
@@ -103,11 +116,16 @@ public class Main {
                     {
                         ProcessBuilder pb = new ProcessBuilder(parts);
                         pb.directory(new File(System.getProperty("user.dir")));
-                        pb.inheritIO(); //send its output to the terminal.
 
-                        Process process = pb.start();
-
-                        process.waitFor();
+                        if(outputFile != null)
+                        {
+                            pb.redirectOutput(new File(outputFile)); // this allows errors to still show on the screen
+                            pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                        }
+                        else {
+                            pb.inheritIO();
+                        }
+                        pb.start().waitFor();
                     }catch(Exception e)
                     {
                         e.printStackTrace();
@@ -131,12 +149,10 @@ public class Main {
         }
         String[] directories = pathEnv.split(File.pathSeparator);
 
-        for(String dir : directories)
-        {
+        for(String dir : directories) {
             File file = new File(dir, command);
 
-            if(file.exists() && file.isFile() && file.canExecute())
-            {
+            if (file.exists() && file.isFile() && file.canExecute()) {
                 return file.getAbsolutePath();
             }
         }
@@ -210,5 +226,21 @@ public class Main {
             result.add(currentArg.toString());
         }
         return result;
+    }
+
+    private static void printResult(String message, String outputFile)
+    {
+        if(outputFile != null)
+        {
+            try(PrintWriter writer = new PrintWriter(new FileWriter(outputFile,false)))
+            {
+                writer.println(message);
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+        }
+        else {
+            System.out.println(message);
+        }
     }
 }
