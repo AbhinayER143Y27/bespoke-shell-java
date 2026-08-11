@@ -28,6 +28,13 @@ public class Main {
                     parts.remove(i);
                     break;
                 }
+                else if(parts.get(i).equals(">") || parts.get(i).equals(">2"))
+                {
+                    outputFile = parts.get(i + 1);
+                    parts.remove(i + 1);
+                    parts.remove(i);
+                    break;
+                }
             }
 
             String command = parts.get(0);
