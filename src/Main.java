@@ -1,7 +1,4 @@
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -25,6 +22,8 @@ public class Main {
                 if(parts.get(i).equals(">") || parts.get(i).equals("1>"))
                 {
                     outputFile = parts.get(i + 1);
+
+                    prepareFile(outputFile);
                     parts.remove(i + 1);
                     parts.remove(i);
                     i--;
@@ -32,6 +31,8 @@ public class Main {
                 else if(parts.get(i).equals("2>"))
                 {
                     errorFile = parts.get(i + 1);
+
+                    prepareFile(errorFile);
                     parts.remove(i + 1);
                     parts.remove(i);
                     i--;
@@ -256,6 +257,25 @@ public class Main {
         }
         else {
             System.out.println(message);
+        }
+    }
+
+    private static void prepareFile(String path)
+    {
+        try
+        {
+            File f = new File(path);
+            if(f.getParentFile() != null)
+            {
+                f.getParentFile().mkdirs(); // the program will not crash if the user redirects to a path that hasn't been created.
+            }
+            f.createNewFile();
+
+            new FileOutputStream(f).close();
+        }
+        catch (IOException e)
+        {
+
         }
     }
 }
