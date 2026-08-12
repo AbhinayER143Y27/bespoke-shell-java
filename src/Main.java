@@ -19,6 +19,7 @@ public class Main {
                 continue;
             }
             String outputFile = null;
+            String errorFile = null;
             for(int i = 0; i < parts.size(); i++)
             {
                 if(parts.get(i).equals(">") || parts.get(i).equals("1>"))
@@ -26,14 +27,14 @@ public class Main {
                     outputFile = parts.get(i + 1);
                     parts.remove(i + 1);
                     parts.remove(i);
-                    break;
+                    i--;
                 }
-                else if(parts.get(i).equals(">") || parts.get(i).equals(">2"))
+                else if(parts.get(i).equals("2>"))
                 {
-                    outputFile = parts.get(i + 1);
+                    errorFile = parts.get(i + 1);
                     parts.remove(i + 1);
                     parts.remove(i);
-                    break;
+                    i--;
                 }
             }
 
@@ -92,10 +93,10 @@ public class Main {
 
                 File newDir = new File(targetPath);
 
-                if(!newDir.isAbsolute())
+                if(!newDir.isAbsolute()) // this is there to tell that the document is related to what actually
                 {
-                    newDir = new File(System.getProperty("user.dir"),targetPath);
-                }
+                    newDir = new File(System.getProperty("user.dir"),targetPath); // /Users/abhinay/Documents - absolute path
+                }                                                                 // Documents is a relative path or cd .. is relative
 
                 try{
                     if(newDir.exists() && newDir.isDirectory())
@@ -126,11 +127,18 @@ public class Main {
 
                         if(outputFile != null)
                         {
-                            pb.redirectOutput(new File(outputFile)); // this allows errors to still show on the screen
-                            pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                            pb.redirectOutput(new File(outputFile));
                         }
                         else {
-                            pb.inheritIO();
+                            pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);  // this allows errors to still show on the screen
+                        }
+
+                        if(errorFile  != null)
+                        {
+                            pb.redirectError(new File(errorFile));
+                        }
+                        else {
+                            pb.redirectError(ProcessBuilder.Redirect.INHERIT); // if there is no file that is given
                         }
                         pb.start().waitFor();
                     }catch(Exception e)
