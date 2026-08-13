@@ -1,3 +1,5 @@
+import javax.annotation.processing.ProcessingEnvironment;
+import java.beans.PropertyEditor;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +17,7 @@ public class Main {
             String outputFile = null;
             String errorFile = null;
             boolean isAppend = false;
+            boolean isErrorAppend = false;
             for(int i = 0; i < parts.size(); i++)
             {
                 if(parts.get(i).equals(">>") || parts.get(i).equals("1>>"))
@@ -22,6 +25,14 @@ public class Main {
                     outputFile = parts.get(i + 1);
                     isAppend = true;
                     prepareFile(outputFile,isAppend);
+                    parts.remove(i + 1);
+                    parts.remove(i);
+                    i--;
+                } else if (parts.get(i).equals("2>>"))
+                {
+                    errorFile = parts.get(i + 1);
+                    isErrorAppend = true;
+                    prepareFile(errorFile,isErrorAppend);
                     parts.remove(i + 1);
                     parts.remove(i);
                     i--;
@@ -135,7 +146,7 @@ public class Main {
                     try
                     {
                         ProcessBuilder pb = new ProcessBuilder(parts);
-                        pb.directory(new File(System.getProperty("user.dir")));
+                        pb.directory(new File(System.getProperty("user.dir"))); // this new File(System.getProperty("user.dir")) becomes this new File("/Users/abhinay/my-shell") and it also represents the path and the pb.directory this one make this its working directory.
 
                         if(isAppend && outputFile != null)//if it is true then it will access else it will just do what it was doing
                         {
@@ -150,9 +161,14 @@ public class Main {
                             pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);  // this allows errors to still show on the screen
                         }
 
-                        if(errorFile  != null)
+                        if(isErrorAppend && errorFile != null)
                         {
-                            pb.redirectError(new File(errorFile));
+                            File logFile = new File(errorFile);
+                            pb.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
+                        }
+                        else if(errorFile != null && !isErrorAppend)
+                        {
+                            pb.redirectError(new File(errorFile)); // instead of showing hte error on the terminal write them in the error file.
                         }
                         else {
                             pb.redirectError(ProcessBuilder.Redirect.INHERIT); // if there is no file that is given
@@ -182,7 +198,7 @@ public class Main {
         String[] directories = pathEnv.split(File.pathSeparator);
 
         for(String dir : directories) {
-            File file = new File(dir, command);
+            File file = new File(dir, command); // dir = "/usr/bin" and the command = "cat" it doesn't create a file it creates a java file object representing a possible path., not anything actual filesystem,
 
             if (file.exists() && file.isFile() && file.canExecute()) {
                 return file.getAbsolutePath();
