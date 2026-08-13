@@ -11,19 +11,26 @@ public class Main {
             String input = scanner.nextLine();
             List<String> parts = parseInput(input);
 
-            if(parts.isEmpty())
-            {
-                continue;
-            }
+            if(parts.isEmpty()) continue;
             String outputFile = null;
             String errorFile = null;
+            boolean isAppend = false;
             for(int i = 0; i < parts.size(); i++)
             {
-                if(parts.get(i).equals(">") || parts.get(i).equals("1>"))
+                if(parts.get(i).equals(">>") || parts.get(i).equals("1>>"))
+                {
+                    outputFile = parts.get(i + 1);
+                    isAppend = true;
+                    prepareFile(outputFile,isAppend);
+                    parts.remove(i + 1);
+                    parts.remove(i);
+                    i--;
+                }
+                else if(parts.get(i).equals(">") || parts.get(i).equals("1>"))
                 {
                     outputFile = parts.get(i + 1);
 
-                    prepareFile(outputFile);
+                    prepareFile(outputFile,false);
                     parts.remove(i + 1);
                     parts.remove(i);
                     i--;
@@ -32,7 +39,7 @@ public class Main {
                 {
                     errorFile = parts.get(i + 1);
 
-                    prepareFile(errorFile);
+                    prepareFile(errorFile,false);
                     parts.remove(i + 1);
                     parts.remove(i);
                     i--;
@@ -58,7 +65,7 @@ public class Main {
                         } else {
                             result = target + ": not found";
                         }
-                        printResult(result, outputFile);
+                        printResult(result, outputFile,false);
                     }
                 }
             }
@@ -71,7 +78,7 @@ public class Main {
                     sb.append(parts.get(i));
                     if(i < parts.size() - 1) sb.append(" ");
                 }
-                printResult(sb.toString(), outputFile);
+                printResult(sb.toString(), outputFile, isAppend);
             }
             // cd is updating a variable
             // we cannot change the physical working directory of a running java using standard codes so we have to fake it by maintaining an internal variable
@@ -114,9 +121,13 @@ public class Main {
             }
 
             else if(command.equals("pwd"))
-            {
-                printResult(System.getProperty("user.dir"), outputFile); //The shell doesn't look for the external programs to tell where it is and the user.dir in java property
+            { // here is append is false obv we are just looking for the location why care about the add ons.
+                printResult(System.getProperty("user.dir"), outputFile, false); //The shell doesn't look for the external programs to tell where it is and the user.dir in java property
             }// that always tell where the JVM was started.
+
+//         <<<<<<<<<<------------------------------------------------------------------------------------------------------------------->>>>>>>>>
+//                                                                        External Commands
+//         <<<<<<<<<<------------------------------------------------------------------------------------------------------------------->>>>>>>>>
             else{
                 String execPath = getExecutablePath(command);
                 if(execPath != null)
@@ -126,7 +137,12 @@ public class Main {
                         ProcessBuilder pb = new ProcessBuilder(parts);
                         pb.directory(new File(System.getProperty("user.dir")));
 
-                        if(outputFile != null)
+                        if(isAppend && outputFile != null)//if it is true then it will access else it will just do what it was doing
+                        {
+                            File logFile = new File(outputFile);
+                            pb.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile)); // we will open the file i dont know about that  but it will be something like this ig :) ;
+                        }
+                        else if(outputFile != null && !isAppend)
                         {
                             pb.redirectOutput(new File(outputFile));
                         }
@@ -244,11 +260,11 @@ public class Main {
         return result;
     }
 
-    private static void printResult(String message, String outputFile)
+    private static void printResult(String message, String outputFile, boolean isAppend)
     {
         if(outputFile != null)
         {
-            try(PrintWriter writer = new PrintWriter(new FileWriter(outputFile,false)))
+            try(PrintWriter writer = new PrintWriter(new FileWriter(outputFile,isAppend))) // is append is there so directly the value could be written in here;
             {
                 writer.println(message);
             } catch (Exception e) {
@@ -260,7 +276,7 @@ public class Main {
         }
     }
 
-    private static void prepareFile(String path)
+    private static void prepareFile(String path, boolean isAppend)
     {
         try
         {
@@ -271,7 +287,14 @@ public class Main {
             }
             f.createNewFile();
 
-            new FileOutputStream(f).close();
+            if(isAppend)
+            {
+
+            }
+            else
+            {
+                new FileOutputStream(f).close();
+            }
         }
         catch (IOException e)
         {
