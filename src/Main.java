@@ -10,7 +10,8 @@ public class Main {
 
         while(true) {
             System.out.print("$ ");
-            String input = scanner.nextLine();
+            System.out.flush();
+            String input = readInputWithTab();
             List<String> parts = parseInput(input);
 
             if(parts.isEmpty()) continue;
@@ -315,6 +316,58 @@ public class Main {
         catch (IOException e)
         {
 
+        }
+    }
+    private static String readInputWithTab() throws IOException{
+        StringBuilder inputBuffer = new StringBuilder();
+        List<String> builtins = List.of("echo","exit","pwd","type","cd");
+
+        while(true)
+        {
+            int inChar = System.in.read();
+
+            if(inChar == 10 || inChar == 13)
+            {
+                System.out.print("\n");
+                return inputBuffer.toString();
+            }
+
+            if(inChar == 9)
+            {
+                String current = inputBuffer.toString();
+                String match = null; // This will hold the matching builtin commands
+                int matchCount = 0; // This will match how many commands matched
+
+                //Find which builtin starts with what we typed
+
+                for(String b : builtins)
+                {
+                    if(b.startsWith(current))
+                    {
+                        match = b;
+                        matchCount++;
+                    }
+                }
+
+                if(matchCount == 1 && match != null)
+                {
+                    String completion = match.substring(current.length()) + " ";
+                    inputBuffer.append(completion);
+                    System.out.print(completion);
+                }
+                else
+                {
+                    // I should do nothing but i got something on th einternet
+                    System.out.print("\u0007");
+                }
+                continue;
+            }
+
+            if(inChar >= 32 && inChar <= 126)
+            {
+                inputBuffer.append((char) inChar);
+                System.out.println((char) inChar);
+            }
         }
     }
 }
