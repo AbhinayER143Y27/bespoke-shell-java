@@ -1,12 +1,37 @@
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.EndOfFileException;
+import org.jline.reader.UserInterruptException;
+import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 public class Main {
     public static void main(String[] args) throws Exception {
+        Terminal terminal = TerminalBuilder.builder().system(true).build();
+        StringsCompleter completer = new StringsCompleter("echo", "exit");
+        LineReader lineReader = LineReaderBuilder.builder()
+                .terminal(terminal)
+                .completer(completer)
+                .build();
+        //javac -cp ~/.m2/repository/org/jline/jline/3.30.4/jline-3.30.4.jar Main.java   -- for code compilation
+        //java -cp ".:$HOME/.m2/repository/org/jline/jline/3.30.4/jline-3.30.4.jar" Main -- this is another one to tell that there is something outside of the java that is placed in here or there.
+
+        // <<<<<<<<<<<<<<<<<<<<------------------------Terminal -----------------Use---------------Case----------------Only--------------------------------------->>>>>>>>>>>>>>>>>>>>>
 
         while(true) {
-            String input = " ";
+            String input;
+            try
+            {
+                input = lineReader.readLine("$ ");
+            }
+            catch(EndOfFileException | UserInterruptException e)
+            {
+                break;
+            }
             List<String> parts = parseInput(input);
 
             if(parts.isEmpty()) continue;
@@ -379,28 +404,4 @@ public class Main {
             }
         }
     }
-    private static void enableRawMode() throws IOException, InterruptedException
-    {
-        Process p = new ProcessBuilder("/bin/sh", "-c", "stty -icanon -echo")
-                .redirectInput(ProcessBuilder.Redirect.INHERIT)
-                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-                .redirectError(ProcessBuilder.Redirect.to(new File("/tmp/stty-err.log")))
-                .start();
-        int exitCode = p.waitFor();
-        try(FileWriter fw = new FileWriter("/tmp/shell-debug.log",true))
-        {
-            fw.write( System.currentTimeMillis() + "enableRawMode exit=" + exitCode + "\n");
-        }
-    }
-
-    private static void disableRawMode() throws IOException, InterruptedException
-    {
-        Process p = new ProcessBuilder("/bin/sh", "-c", "stty sane")
-                .redirectInput(ProcessBuilder.Redirect.INHERIT)
-                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-                .redirectError(ProcessBuilder.Redirect.INHERIT)
-                .start();
-        p.waitFor();
-    }
-
 }
