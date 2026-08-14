@@ -1,17 +1,12 @@
-import javax.annotation.processing.ProcessingEnvironment;
-import java.beans.PropertyEditor;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 public class Main {
     public static void main(String[] args) throws Exception {
-        Scanner scanner = new Scanner(System.in);
 
         while(true) {
-            System.out.print("$ ");
-            System.out.flush();
-            String input = readInputWithTab();
+            String input = " ";
             List<String> parts = parseInput(input);
 
             if(parts.isEmpty()) continue;
@@ -319,8 +314,9 @@ public class Main {
         }
     }
     private static String readInputWithTab() throws IOException{
+        // run this program on the terminal for the tab problem and before that enter this into the terminal : java -cp src/main/java Main after the javac Main.java
         StringBuilder inputBuffer = new StringBuilder();
-        List<String> builtins = List.of("echo","exit","pwd","type","cd");
+        List<String> builtins = List.of("echo","exit");
 
         while(true)
         {
@@ -328,7 +324,7 @@ public class Main {
 
             if(inChar == 10 || inChar == 13)
             {
-                System.out.print("\n");
+                System.out.println();
                 return inputBuffer.toString();
             }
 
@@ -354,20 +350,57 @@ public class Main {
                     String completion = match.substring(current.length()) + " ";
                     inputBuffer.append(completion);
                     System.out.print(completion);
+                    System.out.flush();
                 }
                 else
                 {
-                    // I should do nothing but i got something on th einternet
+                    // I should do nothing but i got something on the internet
                     System.out.print("\u0007");
+                    System.out.flush();
                 }
                 continue;
             }
-
+            if(inChar == 127 || inChar == 8)
+            {
+                if(inputBuffer.length() > 0)
+                {
+                    inputBuffer.deleteCharAt(inputBuffer.length() - 1);
+                    System.out.print("\b \b");
+                    System.out.flush();
+                }
+                continue;
+            }
             if(inChar >= 32 && inChar <= 126)
             {
-                inputBuffer.append((char) inChar);
-                System.out.println((char) inChar);
+                char c = (char) inChar;
+                inputBuffer.append(c);
+                System.out.print(c);
+                System.out.flush();
             }
         }
     }
+    private static void enableRawMode() throws IOException, InterruptedException
+    {
+        Process p = new ProcessBuilder("/bin/sh", "-c", "stty -icanon -echo")
+                .redirectInput(ProcessBuilder.Redirect.INHERIT)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .redirectError(ProcessBuilder.Redirect.to(new File("/tmp/stty-err.log")))
+                .start();
+        int exitCode = p.waitFor();
+        try(FileWriter fw = new FileWriter("/tmp/shell-debug.log",true))
+        {
+            fw.write( System.currentTimeMillis() + "enableRawMode exit=" + exitCode + "\n");
+        }
+    }
+
+    private static void disableRawMode() throws IOException, InterruptedException
+    {
+        Process p = new ProcessBuilder("/bin/sh", "-c", "stty sane")
+                .redirectInput(ProcessBuilder.Redirect.INHERIT)
+                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                .redirectError(ProcessBuilder.Redirect.INHERIT)
+                .start();
+        p.waitFor();
+    }
+
 }
