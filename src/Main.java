@@ -1,17 +1,28 @@
-import javax.annotation.processing.ProcessingEnvironment;
-import java.beans.PropertyEditor;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 public class Main {
     public static void main(String[] args) throws Exception {
-        Scanner scanner = new Scanner(System.in);
+        // Safety net: if the JVM exits abnormally (Ctrl+C, uncaught
+        // exception) while mid-read, this guarantees the terminal gets put
+        // back into normal (cooked/echo) mode instead of staying stuck.
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try { setRawMode(false); } catch (Exception ignored) {}
+        }));
 
         while(true) {
             System.out.print("$ ");
             System.out.flush();
-            String input = readInputWithTab();
+            String input;
+            setRawMode(true);
+            try
+            {
+                input = readInputWithTab();
+            }finally {
+                setRawMode(false);
+            }
+            if (input == null) break; // Ctrl-D / real EOF on stdin
+
             List<String> parts = parseInput(input);
 
             if(parts.isEmpty()) continue;
@@ -318,6 +329,7 @@ public class Main {
 
         }
     }
+
     private static String readInputWithTab() throws IOException{
         StringBuilder inputBuffer = new StringBuilder();
         List<String> builtins = List.of("echo","exit","pwd","type","cd");
@@ -326,15 +338,20 @@ public class Main {
         {
             int inChar = System.in.read();
 
+            if(inChar == -1)
+            {
+                return inputBuffer.length() == 0 ? null : inputBuffer.toString();
+            }
+
             if(inChar == 10 || inChar == 13)
             {
                 System.out.print("\n");
-                return inputBuffer.toString();
+                break;
             }
 
             if(inChar == 9)
             {
-                String current = inputBuffer.toString();
+                String currentBufferText = inputBuffer.toString();
                 String match = null; // This will hold the matching builtin commands
                 int matchCount = 0; // This will match how many commands matched
 
@@ -342,7 +359,7 @@ public class Main {
 
                 for(String b : builtins)
                 {
-                    if(b.startsWith(current))
+                    if(b.startsWith(currentBufferText))
                     {
                         match = b;
                         matchCount++;
@@ -351,23 +368,46 @@ public class Main {
 
                 if(matchCount == 1 && match != null)
                 {
-                    String completion = match.substring(current.length()) + " ";
-                    inputBuffer.append(completion);
-                    System.out.print(completion);
+                    String completionPart = match.substring(currentBufferText.length()) + " ";
+                    inputBuffer.append(completionPart);
+                    System.out.print(completionPart);
+                    System.out.flush();
                 }
                 else
                 {
                     // I should do nothing but i got something on th einternet
                     System.out.print("\u0007");
+                    System.out.flush();
                 }
+                continue;
+            }
+
+            if((inChar == 127 || inChar == 8) && inputBuffer.length() > 0)
+            {
+                inputBuffer.setLength(inputBuffer.length() - 1);
+                System.out.print("\b \b");
+                System.out.flush();
                 continue;
             }
 
             if(inChar >= 32 && inChar <= 126)
             {
-                inputBuffer.append((char) inChar);
-                System.out.println((char) inChar);
+                char ch = (char) inChar;
+                inputBuffer.append(ch);
+                System.out.print(ch);
+                System.out.flush();
             }
+        }
+        return inputBuffer.toString();
+    }
+    private static void setRawMode(boolean on) throws Exception
+    {
+        String state = on ? "-icanon -echo" : "icanon echo";
+        String cmd = "stty " + state + " < /dev/tty";
+        int exitCode = new ProcessBuilder("sh","-c",cmd).inheritIO().start().waitFor();
+        if (exitCode != 0)
+        {
+            System.err.println("warning: stty " + state + " failed (exit " + exitCode + ")");
         }
     }
 }
