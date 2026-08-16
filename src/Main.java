@@ -333,7 +333,8 @@ public class Main {
     private static String readInputWithTab() throws IOException{
         StringBuilder inputBuffer = new StringBuilder();
         List<String> builtins = List.of("echo","exit","pwd","type","cd");
-
+        boolean lastTabWasMultiMatch = false;
+        String lastTabBuffer = null;
         while(true)
         {
             int inChar = System.in.read();
@@ -352,8 +353,7 @@ public class Main {
             if(inChar == 9)
             {
                 String currentBufferText = inputBuffer.toString();
-                String match = null; // This will hold the matching builtin commands
-                int matchCount = 0; // This will match how many commands matched
+                List<String> matches = new ArrayList<>();
 
                 //Find which builtin starts with what we typed
                 Set<String> allCandidates = getCompletionCandidates(currentBufferText);
@@ -362,23 +362,48 @@ public class Main {
                 {
                     if(b.startsWith(currentBufferText))
                     {
-                        match = b;
-                        matchCount++;
+                        matches.add(b);
                     }
                 }
+                Collections.sort(matches);
 
-                if(matchCount == 1 && match != null)
+                if(matches.size() == 1)
                 {
+                    String match = matches.get(0);
                     String completionPart = match.substring(currentBufferText.length()) + " ";
                     inputBuffer.append(completionPart);
                     System.out.print(completionPart);
                     System.out.flush();
+
+                    lastTabWasMultiMatch = false;
+                    lastTabBuffer = null;
                 }
-                else
+                else if(matches.size() > 1)
                 {
+                    if(lastTabWasMultiMatch && currentBufferText.equals(lastTabBuffer))
+                    {
+                        System.out.print("\n");
+                        System.out.print(String.join("  ",matches));
+                        System.out.print("\n");
+                        System.out.print("$ " + currentBufferText);
+                        System.out.flush();
+
+                        lastTabWasMultiMatch = false;
+                        lastTabBuffer = null;
+                    }
+                    else {
+                        System.out.print("\u0007");
+                        System.out.flush();
+                        lastTabWasMultiMatch = true;
+                        lastTabBuffer = currentBufferText;
+                    }
+                }
+                else{
                     // I should do nothing but i got something on th einternet
                     System.out.print("\u0007");
                     System.out.flush();
+                    lastTabWasMultiMatch = false;
+                    lastTabBuffer = null;
                 }
                 continue;
             }
@@ -388,6 +413,8 @@ public class Main {
                 inputBuffer.setLength(inputBuffer.length() - 1);
                 System.out.print("\b \b");
                 System.out.flush();
+                lastTabWasMultiMatch = false;
+                lastTabBuffer = null;
                 continue;
             }
 
@@ -397,6 +424,8 @@ public class Main {
                 inputBuffer.append(ch);
                 System.out.print(ch);
                 System.out.flush();
+                lastTabWasMultiMatch = false;
+                lastTabBuffer = null;
             }
         }
         return inputBuffer.toString();
