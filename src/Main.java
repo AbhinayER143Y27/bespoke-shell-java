@@ -1,6 +1,6 @@
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+
 public class Main {
     public static void main(String[] args) throws Exception {
         // Safety net: if the JVM exits abnormally (Ctrl+C, uncaught
@@ -356,8 +356,9 @@ public class Main {
                 int matchCount = 0; // This will match how many commands matched
 
                 //Find which builtin starts with what we typed
+                Set<String> allCandidates = getCompletionCandidates(currentBufferText);
 
-                for(String b : builtins)
+                for(String b : allCandidates)
                 {
                     if(b.startsWith(currentBufferText))
                     {
@@ -409,5 +410,55 @@ public class Main {
         {
             System.err.println("warning: stty " + state + " failed (exit " + exitCode + ")");
         }
+    }
+
+    private static Set<String> getCompletionCandidates(String prefix)
+    {
+        if(prefix == null) return new HashSet<>();
+        File currentDir = new File(System.getProperty("user.dir"));
+        File[] localFiles = currentDir.listFiles();
+        Set<String> candidates = new TreeSet<>();
+
+        List<String> builtins = List.of("echo","exit","pwd","type","cd");
+        for(String b : builtins)
+        {
+            if(b.startsWith(prefix)) candidates.add(b);
+        }
+        String pathEnv = System.getenv("PATH");
+
+        if(localFiles != null)
+        {
+            for(File f : localFiles)
+            {
+                if(f.isFile() && f.getName().startsWith(prefix)) // dont add the f.canexecute() invested 2 hours already + 20 min
+                {
+                    candidates.add(f.getName());
+                }
+            }
+        }
+
+        if(pathEnv != null)
+        {
+            String[] directories = pathEnv.split(File.pathSeparator);
+            for(String dir : directories)
+            {
+                File folder = new File(dir);
+                if(folder.exists() && folder.isDirectory())
+                {
+                    File[] files = folder.listFiles();
+                    if(files != null)
+                    {
+                        for(File f : files)
+                        {
+                            if(f.isFile() && f.getName().startsWith(prefix))
+                            {
+                                candidates.add(f.getName());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return candidates;
     }
 }
