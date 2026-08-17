@@ -21,6 +21,7 @@ public class Main {
             }finally {
                 setRawMode(false);
             }
+            // This will work after the enter has been placed and before this all the tab related work is done
             if (input == null) break; // Ctrl-D / real EOF on stdin
 
             List<String> parts = parseInput(input);
@@ -352,11 +353,16 @@ public class Main {
 
             if(inChar == 9)
             {
-                String currentBufferText = inputBuffer.toString();
+                String fullBufferText = inputBuffer.toString();
+                boolean hasSpace = fullBufferText.contains(" ");
+                int spaceIndex = fullBufferText.lastIndexOf(" ");
+                String currentBufferText = hasSpace ? fullBufferText.substring(spaceIndex + 1) : fullBufferText;
+
+
                 List<String> matches = new ArrayList<>();
 
                 //Find which builtin starts with what we typed
-                Set<String> allCandidates = getCompletionCandidates(currentBufferText);
+                Set<String> allCandidates = hasSpace ? getFilenameCandidates(currentBufferText) : getCompletionCandidates(currentBufferText);
 
                 for(String b : allCandidates)
                 {
@@ -410,7 +416,7 @@ public class Main {
                     }
                 }
                 else{
-                    // I should do nothing but i got something on th einternet
+                    // I should do nothing but i got something on the internet
                     System.out.print("\u0007");
                     System.out.flush();
                     lastTabWasMultiMatch = false;
@@ -470,6 +476,26 @@ public class Main {
             if(prefix.isEmpty()) break;
         }
         return prefix;
+    }
+
+    // This one is restricted to the current directory only
+
+    private static Set<String> getFilenameCandidates(String prefix)
+    {
+        Set<String> candidates = new TreeSet<>();
+        File currentDir = new File(System.getProperty("user.dir"));
+        File[] localFiles = currentDir.listFiles();
+        if(localFiles != null)
+        {
+            for(File f : localFiles)
+            {
+                if(f.getName().startsWith(prefix))
+                {
+                    candidates.add(f.getName());
+                }
+            }
+        }
+        return candidates;
     }
 
     private static Set<String> getCompletionCandidates(String prefix)
