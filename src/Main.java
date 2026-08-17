@@ -380,7 +380,18 @@ public class Main {
                 }
                 else if(matches.size() > 1)
                 {
-                    if(lastTabWasMultiMatch && currentBufferText.equals(lastTabBuffer))
+                    String lcp = longestCommonPrefix(matches);
+                    if(lcp.length() > currentBufferText.length())
+                    {
+                        String completionPart = lcp.substring(currentBufferText.length());
+                        inputBuffer.append(completionPart);
+                        System.out.print(completionPart);
+                        System.out.flush();
+
+                        lastTabWasMultiMatch = false;
+                        lastTabBuffer = null;
+                    }
+                    else if(lastTabWasMultiMatch && currentBufferText.equals(lastTabBuffer))
                     {
                         System.out.print("\n");
                         System.out.print(String.join("  ",matches));
@@ -439,6 +450,26 @@ public class Main {
         {
             System.err.println("warning: stty " + state + " failed (exit " + exitCode + ")");
         }
+    }
+
+    private static String longestCommonPrefix(List<String> strings)
+    {
+        if(strings == null || strings.isEmpty()) return "";
+
+        String prefix = strings.get(0);
+        for(int i = 1; i < strings.size(); i++)
+        {
+            String other = strings.get(i);
+            int maxLen = Math.min(prefix.length(), other.length());
+            int j = 0;
+            while(j < maxLen && prefix.charAt(j) == other.charAt(j))
+            {
+                j++;
+            }
+            prefix = prefix.substring(0,j);
+            if(prefix.isEmpty()) break;
+        }
+        return prefix;
     }
 
     private static Set<String> getCompletionCandidates(String prefix)
