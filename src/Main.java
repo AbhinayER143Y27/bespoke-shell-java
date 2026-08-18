@@ -355,14 +355,17 @@ public class Main {
             {
                 String fullBufferText = inputBuffer.toString();
                 boolean hasSpace = fullBufferText.contains(" ");
-                int spaceIndex = fullBufferText.lastIndexOf(" ");
-                String currentBufferText = hasSpace ? fullBufferText.substring(spaceIndex + 1) : fullBufferText;
+                int spaceIndex = fullBufferText.lastIndexOf(' ');
+                String argument = hasSpace ? fullBufferText.substring(spaceIndex + 1) : fullBufferText;
 
+                int slashIndex = argument.lastIndexOf("/");
+                String dirPath = (slashIndex >= 0) ? argument.substring(0,slashIndex + 1) : "";
+                String currentBufferText = (slashIndex >= 0) ? argument.substring(slashIndex + 1) : argument;
 
                 List<String> matches = new ArrayList<>();
 
                 //Find which builtin starts with what we typed
-                Set<String> allCandidates = hasSpace ? getFilenameCandidates(currentBufferText) : getCompletionCandidates(currentBufferText);
+                Set<String> allCandidates = hasSpace ? getFilenameCandidates(dirPath ,currentBufferText) : getCompletionCandidates(currentBufferText);
 
                 for(String b : allCandidates)
                 {
@@ -376,7 +379,13 @@ public class Main {
                 if(matches.size() == 1)
                 {
                     String match = matches.get(0);
-                    String completionPart = match.substring(currentBufferText.length()) + " ";
+                    String completionPart = match.substring(currentBufferText.length());
+
+                    File baseDir = dirPath.isEmpty()
+                            ? new File(System.getProperty("user.dir"))
+                            : new File(new File(System.getProperty("user.dir")),dirPath);
+                    File matchedEntry = new File(baseDir, match);
+                    completionPart += matchedEntry.isDirectory() ? "/" : " ";
                     inputBuffer.append(completionPart);
                     System.out.print(completionPart);
                     System.out.flush();
@@ -480,10 +489,10 @@ public class Main {
 
     // This one is restricted to the current directory only
 
-    private static Set<String> getFilenameCandidates(String prefix)
+    private static Set<String> getFilenameCandidates(String dirPath,String prefix)
     {
         Set<String> candidates = new TreeSet<>();
-        File currentDir = new File(System.getProperty("user.dir"));
+        File currentDir = dirPath.isEmpty() ? new File(System.getProperty("user.dir")) : new File(new File(System.getProperty("user.dir")),dirPath);
         File[] localFiles = currentDir.listFiles();
         if(localFiles != null)
         {
