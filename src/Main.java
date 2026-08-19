@@ -381,11 +381,10 @@ public class Main {
                     String match = matches.get(0);
                     String completionPart = match.substring(currentBufferText.length());
 
-                    File baseDir = dirPath.isEmpty()
-                            ? new File(System.getProperty("user.dir"))
-                            : new File(new File(System.getProperty("user.dir")),dirPath);
-                    File matchedEntry = new File(baseDir, match);
-                    completionPart += matchedEntry.isDirectory() ? "/" : " ";
+                    if(!match.endsWith("/"))
+                    {
+                        completionPart += " ";
+                    }
                     inputBuffer.append(completionPart);
                     System.out.print(completionPart);
                     System.out.flush();
@@ -411,7 +410,7 @@ public class Main {
                         System.out.print("\n");
                         System.out.print(String.join("  ",matches));
                         System.out.print("\n");
-                        System.out.print("$ " + currentBufferText);
+                        System.out.print("$ " + fullBufferText);
                         System.out.flush();
 
                         lastTabWasMultiMatch = false;
@@ -500,7 +499,7 @@ public class Main {
             {
                 if(f.getName().startsWith(prefix))
                 {
-                    candidates.add(f.getName());
+                    candidates.add(f.isDirectory() ? f.getName() + "/" : f.getName());
                 }
             }
         }
