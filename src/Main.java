@@ -9,7 +9,7 @@ public class Main {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try { setRawMode(false); } catch (Exception ignored) {}
         }));
-
+        Map<String, String> completeMap = new HashMap<>();
         while(true) {
             System.out.print("$ ");
             System.out.flush();
@@ -99,7 +99,20 @@ public class Main {
                 if(parts.size() >= 3 && parts.get(1).equals("-p"))
                 {
                     String targetCommand = parts.get(2);
-                    System.out.println("complete: " + targetCommand + ": no completion specification");
+                    if(completeMap.containsKey(targetCommand))
+                    {
+                        System.out.println("complete -C '" + completeMap.get(targetCommand) + "' " + targetCommand);
+                    }
+                    else
+                    {
+                        System.out.println("complete: " + targetCommand + ": no completion specification");
+                    }
+                }
+                else if(parts.size() >= 4 && parts.get(1).equals("-C"))
+                {
+                    String commandName = parts.get(3);
+                    String path = parts.get(2);
+                    completeMap.put(commandName, path);
                 }
             }
 
