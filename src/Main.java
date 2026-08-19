@@ -94,6 +94,15 @@ public class Main {
                 }
             }
 
+            else if(command.equals("complete"))
+            {
+                if(parts.size() >= 3 && parts.get(1).equals("-p"))
+                {
+                    String targetCommand = parts.get(2);
+                    System.out.println("complete: " + targetCommand + ": no completion specification");
+                }
+            }
+
             else if(command.equals("echo"))
             {
                 StringBuilder sb = new StringBuilder();
@@ -198,7 +207,7 @@ public class Main {
     }
     private static boolean isBuiltIn(String target)
     {
-        return target.equals("echo") || target.equals("exit") || target.equals("type") || target.equals("pwd") || target.equals("cd");
+        return target.equals("echo") || target.equals("exit") || target.equals("type") || target.equals("pwd") || target.equals("cd") || target.equals("complete");
     }
 
     private static String getExecutablePath(String command)
