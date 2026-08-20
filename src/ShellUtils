@@ -1,0 +1,63 @@
+import java.io.*;
+
+public class ShellUtils {
+
+    static boolean isBuiltIn(String target) {
+        return target.equals("echo") || target.equals("exit") || target.equals("type") || target.equals("pwd") || target.equals("cd") || target.equals("complete");
+    }
+
+    static String getExecutablePath(String command) {
+        String pathEnv = System.getenv("PATH");
+        if(pathEnv == null || pathEnv.isEmpty()) {
+            return null;
+        }
+        String[] directories = pathEnv.split(File.pathSeparator);
+
+        for(String dir : directories) {
+            File file = new File(dir, command);
+            if (file.exists() && file.isFile() && file.canExecute()) {
+                return file.getAbsolutePath();
+            }
+        }
+        return null;
+    }
+
+    static void printResult(String message, String outputFile, boolean isAppend) {
+        if(outputFile != null) {
+            try(PrintWriter writer = new PrintWriter(new FileWriter(outputFile,isAppend))) {
+                writer.println(message);
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+        } else {
+            System.out.println(message);
+        }
+    }
+
+    static void prepareFile(String path, boolean isAppend) {
+        try {
+            File f = new File(path);
+            if(f.getParentFile() != null) {
+                f.getParentFile().mkdirs();
+            }
+            f.createNewFile();
+
+            if(isAppend) {
+                // no-op: leave existing content in place for append mode
+            } else {
+                new FileOutputStream(f).close();
+            }
+        } catch (IOException e) {
+            // silently ignore — matches original behavior
+        }
+    }
+
+    static void setRawMode(boolean on) throws Exception {
+        String state = on ? "-icanon -echo" : "icanon echo";
+        String cmd = "stty " + state + " < /dev/tty";
+        int exitCode = new ProcessBuilder("sh","-c",cmd).inheritIO().start().waitFor();
+        if (exitCode != 0) {
+            System.err.println("warning: stty " + state + " failed (exit " + exitCode + ")");
+        }
+    }
+}
