@@ -1,0 +1,75 @@
+import java.io.*;
+import java.util.*;
+
+public class Completer {
+
+    static String longestCommonPrefix(List<String> strings) {
+        if(strings == null || strings.isEmpty()) return "";
+
+        String prefix = strings.get(0);
+        for(int i = 1; i < strings.size(); i++) {
+            String other = strings.get(i);
+            int maxLen = Math.min(prefix.length(), other.length());
+            int j = 0;
+            while(j < maxLen && prefix.charAt(j) == other.charAt(j)) {
+                j++;
+            }
+            prefix = prefix.substring(0,j);
+            if(prefix.isEmpty()) break;
+        }
+        return prefix;
+    }
+
+    static Set<String> getFilenameCandidates(String dirPath,String prefix) {
+        Set<String> candidates = new TreeSet<>();
+        File currentDir = dirPath.isEmpty() ? new File(System.getProperty("user.dir")) : new File(new File(System.getProperty("user.dir")),dirPath);
+        File[] localFiles = currentDir.listFiles();
+        if(localFiles != null) {
+            for(File f : localFiles) {
+                if(f.getName().startsWith(prefix)) {
+                    candidates.add(f.isDirectory() ? f.getName() + "/" : f.getName());
+                }
+            }
+        }
+        return candidates;
+    }
+
+    static Set<String> getCompletionCandidates(String prefix) {
+        if(prefix == null) return new HashSet<>();
+        File currentDir = new File(System.getProperty("user.dir"));
+        File[] localFiles = currentDir.listFiles();
+        Set<String> candidates = new TreeSet<>();
+
+        List<String> builtins = List.of("echo","exit","pwd","type","cd");
+        for(String b : builtins) {
+            if(b.startsWith(prefix)) candidates.add(b);
+        }
+        String pathEnv = System.getenv("PATH");
+
+        if(localFiles != null) {
+            for(File f : localFiles) {
+                if(f.isFile() && f.getName().startsWith(prefix)) {
+                    candidates.add(f.getName());
+                }
+            }
+        }
+
+        if(pathEnv != null) {
+            String[] directories = pathEnv.split(File.pathSeparator);
+            for(String dir : directories) {
+                File folder = new File(dir);
+                if(folder.exists() && folder.isDirectory()) {
+                    File[] files = folder.listFiles();
+                    if(files != null) {
+                        for(File f : files) {
+                            if(f.isFile() && f.getName().startsWith(prefix)) {
+                                candidates.add(f.getName());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return candidates;
+    }
+}
