@@ -1,0 +1,111 @@
+import java.io.*;
+import java.util.*;
+
+public class InputReader {
+
+    static String readInputWithTab() throws IOException{
+        StringBuilder inputBuffer = new StringBuilder();
+        List<String> builtins = List.of("echo","exit","pwd","type","cd");
+        boolean lastTabWasMultiMatch = false;
+        String lastTabBuffer = null;
+        while(true) {
+            int inChar = System.in.read();
+
+            if(inChar == -1) {
+                return inputBuffer.length() == 0 ? null : inputBuffer.toString();
+            }
+
+            if(inChar == 10 || inChar == 13) {
+                System.out.print("\n");
+                break;
+            }
+
+            if(inChar == 9) {
+                String fullBufferText = inputBuffer.toString();
+                boolean hasSpace = fullBufferText.contains(" ");
+                int spaceIndex = fullBufferText.lastIndexOf(' ');
+                String argument = hasSpace ? fullBufferText.substring(spaceIndex + 1) : fullBufferText;
+
+                int slashIndex = argument.lastIndexOf("/");
+                String dirPath = (slashIndex >= 0) ? argument.substring(0,slashIndex + 1) : "";
+                String currentBufferText = (slashIndex >= 0) ? argument.substring(slashIndex + 1) : argument;
+
+                List<String> matches = new ArrayList<>();
+
+                Set<String> allCandidates = hasSpace ? Completer.getFilenameCandidates(dirPath ,currentBufferText) : Completer.getCompletionCandidates(currentBufferText);
+
+                for(String b : allCandidates) {
+                    if(b.startsWith(currentBufferText)) {
+                        matches.add(b);
+                    }
+                }
+                Collections.sort(matches);
+
+                if(matches.size() == 1) {
+                    String match = matches.get(0);
+                    String completionPart = match.substring(currentBufferText.length());
+
+                    if(!match.endsWith("/")) {
+                        completionPart += " ";
+                    }
+                    inputBuffer.append(completionPart);
+                    System.out.print(completionPart);
+                    System.out.flush();
+
+                    lastTabWasMultiMatch = false;
+                    lastTabBuffer = null;
+                } else if(matches.size() > 1) {
+                    String lcp = Completer.longestCommonPrefix(matches);
+                    if(lcp.length() > currentBufferText.length()) {
+                        String completionPart = lcp.substring(currentBufferText.length());
+                        inputBuffer.append(completionPart);
+                        System.out.print(completionPart);
+                        System.out.flush();
+
+                        lastTabWasMultiMatch = false;
+                        lastTabBuffer = null;
+                    } else if(lastTabWasMultiMatch && currentBufferText.equals(lastTabBuffer)) {
+                        System.out.print("\n");
+                        System.out.print(String.join("  ",matches));
+                        System.out.print("\n");
+                        System.out.print("$ " + fullBufferText);
+                        System.out.flush();
+
+                        lastTabWasMultiMatch = false;
+                        lastTabBuffer = null;
+                    } else {
+                        System.out.print("\u0007");
+                        System.out.flush();
+                        lastTabWasMultiMatch = true;
+                        lastTabBuffer = currentBufferText;
+                    }
+                } else {
+                    System.out.print("\u0007");
+                    System.out.flush();
+                    lastTabWasMultiMatch = false;
+                    lastTabBuffer = null;
+                }
+                continue;
+            }
+
+            if((inChar == 127 || inChar == 8) && inputBuffer.length() > 0) {
+                inputBuffer.setLength(inputBuffer.length() - 1);
+                System.out.print("\b \b");
+                System.out.flush();
+                lastTabWasMultiMatch = false;
+                lastTabBuffer = null;
+                continue;
+            }
+
+            if(inChar >= 32 && inChar <= 126) {
+                char ch = (char) inChar;
+                inputBuffer.append(ch);
+                System.out.print(ch);
+                System.out.flush();
+                lastTabWasMultiMatch = false;
+                lastTabBuffer = null;
+            }
+        }
+        return inputBuffer.toString();
+    }
+}
